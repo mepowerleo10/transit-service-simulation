@@ -1,8 +1,10 @@
+from dataclasses import dataclass
 import datetime
 from enum import Enum
-from typing import List
+from typing import List, Tuple
 
 import numpy as np
+from numpy.random import random
 from scipy.spatial import distance_matrix
 
 
@@ -24,17 +26,12 @@ class ReservationStatus(Enum):
     REJECTED = 2
 
 
+@dataclass
 class Trip:
-    def __init__(
-        self,
-        reserved_at: datetime.datetime,
-        direction: TripDirection,
-        reservation_status=ReservationStatus.PENDING,
-    ) -> None:
-        self.reserved_at = reserved_at
-        self.direction = direction
-        self.reservation_status = reservation_status
-
+    reserved_at: datetime.datetime
+    direction: TripDirection
+    location: Tuple[float, float]
+    reservation_status=ReservationStatus.PENDING
 
 class ServiceRegion:
     def __init__(self, num_of_zones_per_row: int, zone_length: float) -> None:
@@ -47,6 +44,17 @@ class ServiceRegion:
 
         self.build_stops_grid()
         self.generate_distance_matrix()
+
+        # Set a random fixed stop in the service region
+        # 1. Get the number of rows in the array
+        # 2. Pick a random row index
+        num_rows = self.stops_grid.shape[0]
+        random_row_index = np.random.choice(num_rows)
+        self.fixed_stop: np.ndarray = self.stops_grid[random_row_index]
+
+        # Pick all other stops ignoring the fixed stop as none_fixed_stops
+        mask = ~np.all(self.stops_grid == self.fixed_stop, axis=1)
+        self.none_fixed_stops = self.stops_grid[mask]
 
     @property
     def num_of_zones(self):
@@ -70,7 +78,7 @@ class ServiceRegion:
         y_coords = Y.flatten()
 
         self.stops_coords = (x_coords, y_coords)
-        self.stops_grid = np.column_stack((x_coords, y_coords))
+        self.stops_grid = np.column_stack(self.stops_coords)
 
     def generate_points(self):
         return (
