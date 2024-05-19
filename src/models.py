@@ -1,10 +1,8 @@
 from dataclasses import dataclass
 import datetime
 from enum import Enum
-from typing import List, Tuple
 
 import numpy as np
-from numpy.random import random
 from scipy.spatial import distance_matrix
 
 
@@ -28,10 +26,21 @@ class ReservationStatus(Enum):
 
 @dataclass
 class Trip:
+    id: int
     reserved_at: datetime.datetime
     direction: TripDirection
-    location: Tuple[float, float]
-    reservation_status=ReservationStatus.PENDING
+    location_index: int
+    reservation_status = ReservationStatus.PENDING
+
+    def __str__(self) -> str:
+        return f"""
+        id: {self.id},
+        direction: {self.direction.name}, 
+        location_index: {self.location_index},
+        reserved_at: {self.reserved_at}, 
+        reservation_status: {self.reservation_status}
+        """
+
 
 class ServiceRegion:
     def __init__(self, num_of_zones_per_row: int, zone_length: float) -> None:
