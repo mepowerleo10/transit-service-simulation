@@ -38,9 +38,7 @@ class Trip:
         """
 
     def as_csv_line(self) -> str:
-        return f"""
-        {self.id}, {self.direction.name}, {self.location_index}, {self.reserved_at}, {self.reservation_status.name}
-        """
+        return f"""{self.id}, {self.direction.name}, {self.location_index}, {self.reserved_at}, {self.reservation_status.name}"""
 
 
 class ServiceRegion:
