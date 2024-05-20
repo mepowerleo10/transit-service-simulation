@@ -1,4 +1,6 @@
+import datetime
 from math import floor
+from pathlib import Path
 from typing import List
 
 import numpy as np
@@ -6,7 +8,7 @@ from ortools.constraint_solver import pywrapcp, routing_enums_pb2
 
 from models import ServiceRegion, Trip, TripDirection
 
-SECONDS_PER_MINUTE = 60
+from env import OUTPUT_DIR, SECONDS_PER_MINUTE
 
 
 class AbstractScenario:
@@ -20,6 +22,10 @@ class AbstractScenario:
         """
         lambda_param: Demand density (number of passengers per hour per zone)
         """
+
+        self.scenario_name = self.generate_scenario_name()
+        self.scenario_directory = OUTPUT_DIR / self.scenario_name
+        self.scenario_directory.mkdir(parents=True, exist_ok=True)
 
         self.num_of_zones_per_row = num_of_zones_per_row
         self.zone_length = zone_length
@@ -44,31 +50,42 @@ class AbstractScenario:
         )
         self.max_distance = floor(self.cut_off_time * self.shuttle_speed)
 
+    def generate_scenario_name(self):
+        now = datetime.datetime.now()
+        return f"{self.__class__.__name__}__{now.strftime("%d_%m_%Y__%H_%M_%S")}"
+
     def run(self): ...
 
     def save(self): ...
 
-    def print_generated_trips(self):
-        print("Generated Trips: \n")
+    def output_generated_trips(self):
+        output_lines = "Generated Trips: \n"
         for trip in self.trips:
-            print(f"\t {trip}")
+            output_lines += f"\t {trip}\n"
 
-    def print(self, solution, routing, manager, picked_trips):
-        """Prints solution on console."""
-        self.print_generated_trips()
-        print(f"Objective: {solution.ObjectiveValue()} s")
-        index = routing.Start(0)
-        plan_output = "Route for Shuttle:\n"
-        route_distance = 0.0
-        while not routing.IsEnd(index):
-            plan_output += f" {manager.IndexToNode(index)} ->"
-            previous_index = index
-            index = solution.Value(routing.NextVar(index))
-            route_distance += routing.GetArcCostForVehicle(previous_index, index, 0)
-        plan_output += f" {manager.IndexToNode(index)}\n"
-        plan_output += f"Route time: {route_distance}s\n"
-        print(plan_output, "\n")
-        print(picked_trips)
+        return output_lines
+
+    def write_results(self, solution, routing, manager, picked_trips):
+        """Writes the solution to the filesystem."""
+
+        file_name = self.scenario_directory / "results.txt"
+        with open(file_name, mode="w+") as f:
+            f.write(self.output_generated_trips())
+            f.write(f"Objective: {solution.ObjectiveValue()} s\n")
+
+            index = routing.Start(0)
+            plan_output = "Route for Shuttle:\n"
+            route_distance = 0.0
+            while not routing.IsEnd(index):
+                plan_output += f" {manager.IndexToNode(index)} ->"
+                previous_index = index
+                index = solution.Value(routing.NextVar(index))
+                route_distance += routing.GetArcCostForVehicle(previous_index, index, 0)
+            plan_output += f" {manager.IndexToNode(index)}\n"
+            plan_output += f"Route time: {route_distance}s\n\n"
+
+            f.write(plan_output)
+            f.write(str(picked_trips))
 
     def generate_trips(self):
         # Pick random stops from all other stops, excluding the fixed stop.
@@ -120,9 +137,9 @@ class ScenarioZero(AbstractScenario):
         self.trips_density = int(self.service_region.num_of_zones * self.lambda_param)
         self.generate_trips()
 
-    def run(self):
-        picked_trips, routing_stops_distance_matrix = (
-            self.pick_routing_stops_distance_matrix(self.trips)
+    def generate_route(self, trips):
+        trip_locations, routing_stops_distance_matrix = (
+            self.pick_routing_stops_distance_matrix(trips)
         )
         manager = pywrapcp.RoutingIndexManager(
             self.trips_density,
@@ -159,5 +176,8 @@ class ScenarioZero(AbstractScenario):
         )
 
         solution = routing.SolveWithParameters(search_parameters)
+        return trip_locations, manager, routing, solution
 
-        self.print(solution, routing, manager, picked_trips)
+    def run(self):
+        trip_locations, manager, routing, solution = self.generate_route(self.trips)
+        self.write_results(solution, routing, manager, trip_locations)

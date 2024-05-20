@@ -11,4 +11,4 @@ Simulating a Semi-Flex Transit service
 - Activate the virtual environment:
   `source .venv/bin/activate`
 - Run the code:
-  `python main.py`
+  `python src/main.py`
