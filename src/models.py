@@ -34,11 +34,12 @@ class Trip:
 
     def __str__(self) -> str:
         return f"""
-        id: {self.id},
-        direction: {self.direction.name}, 
-        location_index: {self.location_index},
-        reserved_at: {self.reserved_at}, 
-        reservation_status: {self.reservation_status}
+        id: {self.id}, direction: {self.direction.name}, location_index: {self.location_index}, reserved_at: {self.reserved_at}, reservation_status: {self.reservation_status.name}
+        """
+
+    def as_csv_line(self) -> str:
+        return f"""
+        {self.id}, {self.direction.name}, {self.location_index}, {self.reserved_at}, {self.reservation_status.name}
         """
 
 

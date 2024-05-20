@@ -52,40 +52,49 @@ class AbstractScenario:
 
     def generate_scenario_name(self):
         now = datetime.datetime.now()
-        return f"{self.__class__.__name__}__{now.strftime("%d_%m_%Y__%H_%M_%S")}"
+        return f"{self.__class__.__name__}__{now.strftime("%d_%m_%Y__%H_%M_%S.%f")}"
 
     def run(self): ...
 
     def save(self): ...
 
-    def output_generated_trips(self):
-        output_lines = "Generated Trips: \n"
+    def write_generated_trips(self):
+        output_lines = "ID, DIRECTION, LOCATION_INDEX, RESERVED_AT, RESERVATION_STATUS"
         for trip in self.trips:
-            output_lines += f"\t {trip}\n"
+            output_lines += f"{trip.as_csv_line()}\n"
 
-        return output_lines
+        trips_file = self.scenario_directory / "trips.csv"
+        with open(trips_file, mode="w+") as f:
+            f.write(output_lines)
 
-    def write_results(self, solution, routing, manager, picked_trips):
+    def write_results(
+        self, solution: pywrapcp.SolutionCollector, routing, manager, picked_trips
+    ):
         """Writes the solution to the filesystem."""
 
-        file_name = self.scenario_directory / "results.txt"
-        with open(file_name, mode="w+") as f:
-            f.write(self.output_generated_trips())
-            f.write(f"Objective: {solution.ObjectiveValue()} s\n")
+        results_file = self.scenario_directory / "results.txt"
+        with open(results_file, mode="w+") as f:
+            try:
+                f.write(f"Objective: {solution.ObjectiveValue()} s\n")
 
-            index = routing.Start(0)
-            plan_output = "Route for Shuttle:\n"
-            route_distance = 0.0
-            while not routing.IsEnd(index):
-                plan_output += f" {manager.IndexToNode(index)} ->"
-                previous_index = index
-                index = solution.Value(routing.NextVar(index))
-                route_distance += routing.GetArcCostForVehicle(previous_index, index, 0)
-            plan_output += f" {manager.IndexToNode(index)}\n"
-            plan_output += f"Route time: {route_distance}s\n\n"
+                index = routing.Start(0)
+                plan_output = "Route for Shuttle:\n"
+                route_distance = 0.0
+                while not routing.IsEnd(index):
+                    plan_output += f" {manager.IndexToNode(index)} ->"
+                    previous_index = index
+                    index = solution.Value(routing.NextVar(index))
+                    route_distance += routing.GetArcCostForVehicle(
+                        previous_index, index, 0
+                    )
+                plan_output += f" {manager.IndexToNode(index)}\n"
+                plan_output += f"Route time: {route_distance}s\n\n"
 
-            f.write(plan_output)
-            f.write(str(picked_trips))
+                f.write(plan_output)
+                f.write(str(picked_trips))
+            except Exception as e:
+                f.write("Failed to find solution")
+                f.write(e)
 
     def generate_trips(self):
         # Pick random stops from all other stops, excluding the fixed stop.
@@ -94,7 +103,7 @@ class AbstractScenario:
             self.service_region.none_fixed_stops.shape[0], self.trips_density
         )
         for num, stop_index in enumerate(random_stops_index):
-            reservation_time = np.random.randint(0, floor(self.planning_horizon * 60))
+            reservation_time = np.random.randint(0, 60)
             direction_of_travel = (
                 TripDirection.INBOUND
                 if np.random.random() < self.inbound_or_outbound_px
@@ -180,4 +189,6 @@ class ScenarioZero(AbstractScenario):
 
     def run(self):
         trip_locations, manager, routing, solution = self.generate_route(self.trips)
+
+        self.write_generated_trips()
         self.write_results(solution, routing, manager, trip_locations)
