@@ -153,7 +153,9 @@ class AbstractScenario:
                         previous_index, index, 0
                     )
                 plan_output += f" {manager.IndexToNode(index)}\n"
-                plan_output += f"Route time: {route_distance}s\n\n"
+
+                route_time = route_distance / (self.shuttle_speed * SECONDS_PER_MINUTE)
+                plan_output += f"Route time: {route_time:.2f} minutes\n\n"
 
                 f.writelines([plan_output])
 
