@@ -1,6 +1,5 @@
 import datetime
 from math import floor
-from pathlib import Path
 import traceback
 from typing import List
 
@@ -49,14 +48,14 @@ class AbstractScenario:
         self.shuttle_speed = SHUTTLE_SPEED
         self.max_distance = floor(self.cut_off_time * self.shuttle_speed)
 
+    def run(self): ...
+
     def generate_scenario_name(self):
         now = datetime.datetime.now()
-        return f"{self.__class__.__name__}__{now.strftime("%d_%m_%Y__%H_%M_%S.%f")}"
+        return f"{self.__class__.__name__}/{now.strftime("%d_%m_%Y__%H_%M_%S.%f")}"
 
-    def generate_route(self, trips):
-        trip_locations, routing_stops_distance_matrix = (
-            self.pick_routing_stops_distance_matrix(trips)
-        )
+    def get_generated_route(self, trips: List[Trip]):
+        routing_stops_distance_matrix = self.pick_routing_stops_distance_matrix(trips)
         manager = pywrapcp.RoutingIndexManager(
             len(trips),
             self.num_of_shuttles,
@@ -103,9 +102,20 @@ class AbstractScenario:
 
         solution = routing.SolveWithParameters(search_parameters)
 
-        return trip_locations, manager, routing, solution
+        return manager, routing, solution
 
-    def run(self): ...
+    def get_dropped_nodes(self, routing, manager, solution) -> List[int]:
+        """Returns a list of IDs for the dropped nodes"""
+
+        dropped_nodes = []
+        for node in range(routing.Size()):
+            if routing.IsStart(node) or routing.IsEnd(node):
+                continue
+            index = manager.IndexToNode(node)
+            if solution.Value(routing.NextVar(index)) == index:
+                dropped_nodes.append(manager.IndexToNode(index))
+
+        return dropped_nodes
 
     def write_generated_trips(self):
         output_lines = (
@@ -123,7 +133,7 @@ class AbstractScenario:
         solution: pywrapcp.SolutionCollector,
         routing,
         manager,
-        trips_to_location_mapping,
+        dropped_nodes,
     ):
         """Writes the solution to the filesystem."""
 
@@ -144,17 +154,6 @@ class AbstractScenario:
                     )
                 plan_output += f" {manager.IndexToNode(index)}\n"
                 plan_output += f"Route time: {route_distance}s\n\n"
-
-                f.writelines([plan_output, "Trips to Node Mapping: ", str(trips_to_location_mapping)])
-
-                # Display dropped nodes
-                dropped_nodes = []
-                for node in range(routing.Size()):
-                    if routing.IsStart(node) or routing.IsEnd(node):
-                        continue
-                    index = manager.IndexToNode(node)
-                    if solution.Value(routing.NextVar(index)) == index:
-                        dropped_nodes.append(manager.IndexToNode(index))
 
                 f.writelines(["\nDropped Nodes: ", str(dropped_nodes)])
 
@@ -184,14 +183,10 @@ class AbstractScenario:
             self.trips.append(trip)
 
     def pick_routing_stops_distance_matrix(self, trips: List[Trip]):
-        trip_ids = [trip.id for trip in trips]
         trip_location_indices = [trip.location_index for trip in trips]
         locations = [self.service_region.fixed_stop_index] + trip_location_indices
         rows = self.service_region.stops_distance_matrix[locations]
-        return (
-            dict(tuple(zip(trip_location_indices, trip_ids))),
-            rows[:, locations].astype(int),
-        )
+        return rows[:, locations].astype(int)
 
 
 class ScenarioZero(AbstractScenario):
@@ -214,25 +209,33 @@ class ScenarioZero(AbstractScenario):
         self.generate_trips()
 
     def run(self):
-        trips_within_time = [
+        """trips_within_time = [
             trip for trip in self.trips if trip.reserved_at <= RESERVATION_CUTOFF
-        ]  # ignore all trips above the cutoff time
+        ]  # ignore all trips above the cutoff time"""
 
-        trip_locations, manager, routing, solution = self.generate_route(
-            trips_within_time
+        trips_within_time = {}
+        for index, trip in enumerate(self.trips):
+            if trip.reserved_at <= RESERVATION_CUTOFF:
+                trips_within_time[index] = trip
+
+        manager, routing, solution = self.get_generated_route(
+            list(trips_within_time.values())
         )
+        dropped_nodes = self.get_dropped_nodes(routing, manager, solution)
 
         if solution:
-            for trip in self.trips:
-                trip_within_time_ids = [t.id for t in trips_within_time]
-                trip.reservation_status = (
-                    ReservationStatus.ACCEPTED
-                    if trip.id in trip_within_time_ids
-                    else ReservationStatus.REJECTED
-                )
+            for index, trip in enumerate(self.trips):
+                status = ReservationStatus.REJECTED
+                if (
+                    index in list(trips_within_time.keys())
+                    and index + 1 not in dropped_nodes # dropped nodes contains the fixed_stop, offset the index by one forward
+                ):
+                    status = ReservationStatus.ACCEPTED
+
+                trip.reservation_status = status
 
         self.write_generated_trips()
-        self.write_results(solution, routing, manager, trip_locations)
+        self.write_results(solution, routing, manager, dropped_nodes)
 
 
 class ScenarioOne(AbstractScenario):
@@ -259,9 +262,8 @@ class ScenarioOne(AbstractScenario):
             trip for trip in self.trips if trip.reserved_at <= RESERVATION_CUTOFF
         ]  # ignore all trips above the cutoff time
 
-        trip_locations, manager, routing, solution = self.generate_route(
-            trips_within_time
-        )
+        manager, routing, solution = self.get_generated_route(trips_within_time)
+        dropped_nodes = self.get_dropped_nodes(routing, manager, solution)
 
         if solution:
             for trip in self.trips:
@@ -273,4 +275,4 @@ class ScenarioOne(AbstractScenario):
                 )
 
         self.write_generated_trips()
-        self.write_results(solution, routing, manager, trip_locations)
+        self.write_results(solution, routing, manager, dropped_nodes)

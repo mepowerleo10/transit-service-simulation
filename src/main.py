@@ -1,4 +1,5 @@
 from multiprocessing import Pool
+import os
 from scenarios import AbstractScenario, ScenarioZero
 import env
 
@@ -25,8 +26,8 @@ def main():
         for i in range(env.NUM_OF_SIMULATIONS)
     ]
 
-    with Pool(env.NUM_OF_SIMULATIONS) as p:
-        p.map(run_scenario, generated_scenarios)
+    with Pool(os.cpu_count()) as p:
+        p.map(run_scenario, generated_scenarios, 200)
 
 
 if __name__ == "__main__":
