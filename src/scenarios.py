@@ -133,14 +133,14 @@ class AbstractScenario:
         solution: pywrapcp.SolutionCollector,
         routing,
         manager,
-        dropped_nodes,
     ):
         """Writes the solution to the filesystem."""
 
         results_file = self.scenario_directory / "results.txt"
         with open(results_file, mode="w+") as f:
             try:
-                f.write(f"Objective: {solution.ObjectiveValue()} s\n")
+                # f.write(f"Objective: {solution.ObjectiveValue()} s\n")
+                f.write(f"Objective: <= {RESERVATION_CUTOFF} minutes\n")
 
                 index = routing.Start(0)
                 plan_output = "Route for Shuttle:\n"
@@ -155,11 +155,16 @@ class AbstractScenario:
                 plan_output += f" {manager.IndexToNode(index)}\n"
                 plan_output += f"Route time: {route_distance}s\n\n"
 
-                f.writelines(["\nDropped Nodes: ", str(dropped_nodes)])
+                f.writelines([plan_output])
 
             except Exception:
                 f.write("Failed to find solution\n")
                 f.writelines(traceback.format_exc())
+
+    def write_distance_matrix(self):
+        distance_matrix_file = self.scenario_directory / "distance_matrix.out"
+        with open(distance_matrix_file, "w+") as f:
+            np.savetxt(f, self.service_region.stops_distance_matrix)
 
     def generate_trips(self):
         # Pick random stops from all other stops, excluding the fixed stop.
@@ -228,19 +233,21 @@ class ScenarioZero(AbstractScenario):
                 status = ReservationStatus.REJECTED
                 if (
                     index in list(trips_within_time.keys())
-                    and index + 1 not in dropped_nodes # dropped nodes contains the fixed_stop, offset the index by one forward
+                    and index + 1
+                    not in dropped_nodes  # dropped nodes contains the fixed_stop, offset the index by one forward
                 ):
                     status = ReservationStatus.ACCEPTED
 
                 trip.reservation_status = status
 
         self.write_generated_trips()
-        self.write_results(solution, routing, manager, dropped_nodes)
+        self.write_results(solution, routing, manager)
+        # self.write_distance_matrix()
 
 
 class ScenarioOne(AbstractScenario):
     """
-    Scenario 1: notice riders are considered
+    Scenario 1: Short notice riders are considered
     """
 
     def __init__(
@@ -258,21 +265,25 @@ class ScenarioOne(AbstractScenario):
         self.generate_trips()
 
     def run(self):
-        trips_within_time = [
-            trip for trip in self.trips if trip.reserved_at <= RESERVATION_CUTOFF
-        ]  # ignore all trips above the cutoff time
+        all_trips_generated = dict(
+            [(index, trip) for index, trip in enumerate(self.trips)]
+        )
 
-        manager, routing, solution = self.get_generated_route(trips_within_time)
+        manager, routing, solution = self.get_generated_route(
+            list(all_trips_generated.values())
+        )
         dropped_nodes = self.get_dropped_nodes(routing, manager, solution)
 
         if solution:
-            for trip in self.trips:
-                trip_within_time_ids = [t.id for t in trips_within_time]
-                trip.reservation_status = (
-                    ReservationStatus.ACCEPTED
-                    if trip.id in trip_within_time_ids
-                    else ReservationStatus.REJECTED
-                )
+            for index, trip in enumerate(self.trips):
+                status = ReservationStatus.REJECTED
+                if (
+                    index + 1 not in dropped_nodes
+                ):  # dropped nodes contain the fixed_stop, offset the index by one forward
+                    status = ReservationStatus.ACCEPTED
+
+                trip.reservation_status = status
 
         self.write_generated_trips()
-        self.write_results(solution, routing, manager, dropped_nodes)
+        self.write_results(solution, routing, manager)
+        # self.write_distance_matrix()

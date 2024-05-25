@@ -1,6 +1,6 @@
 from multiprocessing import Pool
 import os
-from scenarios import AbstractScenario, ScenarioZero
+from scenarios import AbstractScenario, ScenarioOne, ScenarioZero
 import env
 
 
@@ -18,6 +18,16 @@ def run_scenario(scenario: AbstractScenario):
 def main():
     generated_scenarios = [
         ScenarioZero(
+            num_of_zones_per_row=env.NUMBER_OF_ZONES_PER_ROW,
+            zone_length=env.ZONE_LENGTH,
+            lambda_param=env.LAMBDA_PARAM,
+            planning_horizon=env.PLANNING_HORIZON,
+        )
+        for i in range(env.NUM_OF_SIMULATIONS)
+    ]
+
+    generated_scenarios = generated_scenarios + [
+        ScenarioOne(
             num_of_zones_per_row=env.NUMBER_OF_ZONES_PER_ROW,
             zone_length=env.ZONE_LENGTH,
             lambda_param=env.LAMBDA_PARAM,
