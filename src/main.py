@@ -26,15 +26,15 @@ def main():
         for i in range(env.NUM_OF_SIMULATIONS)
     ]
 
-    generated_scenarios = generated_scenarios + [
-        ScenarioOne(
-            num_of_zones_per_row=env.NUMBER_OF_ZONES_PER_ROW,
-            zone_length=env.ZONE_LENGTH,
-            lambda_param=env.LAMBDA_PARAM,
-            planning_horizon=env.PLANNING_HORIZON,
-        )
-        for i in range(env.NUM_OF_SIMULATIONS)
-    ]
+    # generated_scenarios = generated_scenarios + [
+    #     ScenarioOne(
+    #         num_of_zones_per_row=env.NUMBER_OF_ZONES_PER_ROW,
+    #         zone_length=env.ZONE_LENGTH,
+    #         lambda_param=env.LAMBDA_PARAM,
+    #         planning_horizon=env.PLANNING_HORIZON,
+    #     )
+    #     for i in range(env.NUM_OF_SIMULATIONS)
+    # ]
 
     with Pool(os.cpu_count()) as p:
         p.map(run_scenario, generated_scenarios, 200)
