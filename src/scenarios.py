@@ -1,5 +1,6 @@
 import datetime
 from math import floor
+from timeit import default_timer as timer
 import traceback
 from typing import List
 
@@ -55,6 +56,8 @@ class AbstractScenario:
         return f"{self.__class__.__name__}/{now.strftime("%d_%m_%Y__%H_%M_%S.%f")}"
 
     def get_generated_route(self, trips: List[Trip]):
+        starting_time = timer()
+
         routing_stops_distance_matrix = self.pick_routing_stops_distance_matrix(trips)
         manager = pywrapcp.RoutingIndexManager(
             len(trips),
@@ -102,7 +105,9 @@ class AbstractScenario:
 
         solution = routing.SolveWithParameters(search_parameters)
 
-        return manager, routing, solution
+        elapsed_time = timer() - starting_time
+
+        return manager, routing, solution, elapsed_time
 
     def get_dropped_nodes(self, routing, manager, solution) -> List[int]:
         """Returns a list of IDs for the dropped nodes"""
@@ -133,6 +138,7 @@ class AbstractScenario:
         solution: pywrapcp.SolutionCollector,
         routing,
         manager,
+        elapsed_time: 0.0,
     ):
         """Writes the solution to the filesystem."""
 
@@ -157,8 +163,7 @@ class AbstractScenario:
                 route_time = route_distance / (self.shuttle_speed * SECONDS_PER_MINUTE)
                 plan_output += f"Route time: {route_time:.2f} minutes\n\n"
 
-                f.writelines([plan_output])
-
+                f.writelines([plan_output, f"Elapsed time: {elapsed_time} seconds\n"])
             except Exception:
                 f.write("Failed to find solution\n")
                 f.writelines(traceback.format_exc())
@@ -225,7 +230,7 @@ class ScenarioZero(AbstractScenario):
             if trip.reserved_at <= RESERVATION_CUTOFF:
                 trips_within_time[index] = trip
 
-        manager, routing, solution = self.get_generated_route(
+        manager, routing, solution, elapsed_time = self.get_generated_route(
             list(trips_within_time.values())
         )
         dropped_nodes = self.get_dropped_nodes(routing, manager, solution)
@@ -243,7 +248,7 @@ class ScenarioZero(AbstractScenario):
                 trip.reservation_status = status
 
         self.write_generated_trips()
-        self.write_results(solution, routing, manager)
+        self.write_results(solution, routing, manager, elapsed_time)
         # self.write_distance_matrix()
 
 
@@ -271,7 +276,7 @@ class ScenarioOne(AbstractScenario):
             [(index, trip) for index, trip in enumerate(self.trips)]
         )
 
-        manager, routing, solution = self.get_generated_route(
+        manager, routing, solution, elapsed_time = self.get_generated_route(
             list(all_trips_generated.values())
         )
         dropped_nodes = self.get_dropped_nodes(routing, manager, solution)
@@ -287,5 +292,5 @@ class ScenarioOne(AbstractScenario):
                 trip.reservation_status = status
 
         self.write_generated_trips()
-        self.write_results(solution, routing, manager)
+        self.write_results(solution, routing, manager, elapsed_time)
         # self.write_distance_matrix()
