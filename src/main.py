@@ -2,7 +2,7 @@ from multiprocessing import Pool
 import os
 from scenarios import AbstractScenario, ScenarioOne, ScenarioZero
 import env
-
+from tqdm.contrib.concurrent import process_map
 
 def run_scenario(scenario: AbstractScenario):
     print(f"Running {scenario.scenario_name} ...")
@@ -36,8 +36,13 @@ def main():
     #     for i in range(env.NUM_OF_SIMULATIONS)
     # ]
 
-    with Pool(os.cpu_count()) as p:
-        p.map(run_scenario, generated_scenarios, 200)
+    process_map(
+        run_scenario,
+        generated_scenarios
+    )
+
+    # with Pool(os.cpu_count()) as p:
+    #     p.map(run_scenario, generated_scenarios, 200)
 
 
 if __name__ == "__main__":
