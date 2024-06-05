@@ -49,6 +49,8 @@ class AbstractScenario:
         self.shuttle_speed = SHUTTLE_SPEED
         self.max_distance = floor(self.cut_off_time * self.shuttle_speed)
 
+        self.allow_dropping = True
+
     def run(self): ...
 
     def generate_scenario_name(self):
@@ -88,10 +90,11 @@ class AbstractScenario:
         )
         distance_dimension.SetGlobalSpanCostCoefficient(50)
 
-        # Allow to drop nodes.
-        penalty = 1000
-        for node in range(1, len(trips)):
-            routing.AddDisjunction([manager.NodeToIndex(node)], penalty)
+        if self.allow_dropping:
+            # Allow to drop nodes.
+            penalty = 1000
+            for node in range(1, len(trips)):
+                routing.AddDisjunction([manager.NodeToIndex(node)], penalty)
 
         search_parameters = pywrapcp.DefaultRoutingSearchParameters()
         search_parameters.first_solution_strategy = (
@@ -227,7 +230,7 @@ class ScenarioZero(AbstractScenario):
 
         trips_within_time = {}
         for index, trip in enumerate(self.trips):
-            if trip.reserved_at <= RESERVATION_CUTOFF:
+            if trip.reserved_at < RESERVATION_CUTOFF:
                 trips_within_time[index] = trip
 
         manager, routing, solution, elapsed_time = self.get_generated_route(
@@ -250,6 +253,15 @@ class ScenarioZero(AbstractScenario):
         self.write_generated_trips()
         self.write_results(solution, routing, manager, elapsed_time)
         # self.write_distance_matrix()
+
+
+class ScenarioAllBelowZero(ScenarioZero):
+    """Accepts all scenarios below zero"""
+
+    def run(self):
+        self.max_distance = 1_000_000_000
+        self.allow_dropping = False
+        super().run()
 
 
 class ScenarioOne(AbstractScenario):

@@ -10,7 +10,7 @@ ZONE_LENGTH = 10
 LAMBDA_PARAM = 0.5
 PLANNING_HORIZON = 0.9
 
-NUM_OF_SIMULATIONS = 10_000
+NUM_OF_SIMULATIONS = 20
 SHUTTLE_SPEED = (
-    0.20  # the shuttle moves with a constant speed of x units of distance/sec
+    0.01  # the shuttle moves with a constant speed of x units of distance/sec
 )

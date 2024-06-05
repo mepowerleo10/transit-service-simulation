@@ -23,6 +23,9 @@ class ReservationStatus(Enum):
     ACCEPTED = 1
     REJECTED = 2
 
+    def __str__(self) -> str:
+        return self.name
+
 
 @dataclass
 class Trip:

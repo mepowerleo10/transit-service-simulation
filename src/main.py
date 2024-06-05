@@ -1,6 +1,4 @@
-from multiprocessing import Pool
-import os
-from scenarios import AbstractScenario, ScenarioOne, ScenarioZero
+from scenarios import AbstractScenario, ScenarioAllBelowZero
 import env
 from tqdm.contrib.concurrent import process_map
 
@@ -17,7 +15,7 @@ def run_scenario(scenario: AbstractScenario):
 
 def main():
     generated_scenarios = [
-        ScenarioZero(
+        ScenarioAllBelowZero(
             num_of_zones_per_row=env.NUMBER_OF_ZONES_PER_ROW,
             zone_length=env.ZONE_LENGTH,
             lambda_param=env.LAMBDA_PARAM,
@@ -25,16 +23,6 @@ def main():
         )
         for i in range(env.NUM_OF_SIMULATIONS)
     ]
-
-    # generated_scenarios = generated_scenarios + [
-    #     ScenarioOne(
-    #         num_of_zones_per_row=env.NUMBER_OF_ZONES_PER_ROW,
-    #         zone_length=env.ZONE_LENGTH,
-    #         lambda_param=env.LAMBDA_PARAM,
-    #         planning_horizon=env.PLANNING_HORIZON,
-    #     )
-    #     for i in range(env.NUM_OF_SIMULATIONS)
-    # ]
 
     process_map(
         run_scenario,
