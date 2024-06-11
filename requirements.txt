@@ -36,9 +36,11 @@ python-dateutil==2.9.0.post0
 pytz==2024.1
 pyzmq==26.0.3
 scipy==1.13.0
+seaborn==0.13.2
 six==1.16.0
 stack-data==0.6.3
 tornado==6.4
+tqdm==4.66.4
 traitlets==5.14.3
 tzdata==2024.1
 wcwidth==0.2.13

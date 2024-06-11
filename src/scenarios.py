@@ -255,7 +255,7 @@ class ScenarioZero(AbstractScenario):
         # self.write_distance_matrix()
 
 
-class ScenarioAllBelowZero(ScenarioZero):
+class ScenarioAllBelowCuttof(ScenarioZero):
     """Accepts all scenarios below zero"""
 
     def run(self):

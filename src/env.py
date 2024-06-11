@@ -6,11 +6,11 @@ RESERVATION_CUTOFF = 50
 OUTPUT_DIR = Path("output")
 
 NUMBER_OF_ZONES_PER_ROW = 10
-ZONE_LENGTH = 10
-LAMBDA_PARAM = 0.5
-PLANNING_HORIZON = 0.9
+ZONE_LENGTH = 1
+LAMBDA_PARAM = 0.1
+PLANNING_HORIZON = 0.7
 
-NUM_OF_SIMULATIONS = 20
+NUM_OF_SIMULATIONS = 1_000
 SHUTTLE_SPEED = (
-    0.01  # the shuttle moves with a constant speed of x units of distance/sec
+    0.015  # the shuttle moves with a constant speed of x units of distance/sec
 )
