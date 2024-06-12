@@ -45,9 +45,12 @@ class Trip:
 
 
 class ServiceRegion:
-    def __init__(self, num_of_zones_per_row: int, zone_length: float) -> None:
+    def __init__(
+        self, num_of_zones_per_row: int, zone_length: float, zone_width: float
+    ) -> None:
         self.num_of_zones_per_row = num_of_zones_per_row
         self.zone_length = zone_length
+        self.zone_width = zone_width
 
         self.stops_coords: np.ndarray = None
         self.stops_grid: np.ndarray = None
@@ -73,15 +76,15 @@ class ServiceRegion:
 
     @property
     def zone_size(self):
-        return self.zone_length * self.zone_length
+        return self.zone_length * self.zone_width
 
     @property
     def grid_size(self):
         return self.num_of_zones * self.zone_size
 
     def build_stops_grid(self):
-        x = self.generate_points()
-        y = self.generate_points()
+        x = self.generate_points(self.zone_length)
+        y = self.generate_points(self.zone_width)
 
         # Create a grid of coordinates
         X, Y = np.meshgrid(x, y, indexing="xy")
@@ -91,11 +94,8 @@ class ServiceRegion:
         self.stops_coords = (x_coords, y_coords)
         self.stops_grid = np.column_stack(self.stops_coords)
 
-    def generate_points(self):
-        return (
-            np.arange(self.num_of_zones_per_row) * self.zone_length
-            + self.zone_length / 2
-        )
+    def generate_points(self, zone_size: float):
+        return np.arange(self.num_of_zones_per_row) * zone_size + zone_size / 2
 
     def generate_distance_matrix(self):
         self.stops_distance_matrix = distance_matrix(self.stops_grid, self.stops_grid)

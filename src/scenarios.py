@@ -17,6 +17,7 @@ class AbstractScenario:
         self,
         num_of_zones_per_row: int,
         zone_length: float,
+        zone_width: float,
         lambda_param: float,
         planning_horizon: float,
     ) -> None:
@@ -30,6 +31,7 @@ class AbstractScenario:
 
         self.num_of_zones_per_row = num_of_zones_per_row
         self.zone_length = zone_length
+        self.zone_width = zone_width
         self.lambda_param = lambda_param
         self.planning_horizon = planning_horizon
 
@@ -37,7 +39,7 @@ class AbstractScenario:
         self.trips: List[Trip] = list()
 
         # Create a service region
-        self.service_region = ServiceRegion(self.num_of_zones_per_row, self.zone_length)
+        self.service_region = ServiceRegion(self.num_of_zones_per_row, self.zone_length, self.zone_width)
 
         self.inbound_or_outbound_px = (
             0.5  # Probability that a trip is inbound or outbound
@@ -51,6 +53,11 @@ class AbstractScenario:
 
         self.allow_dropping = True
 
+        self.init()
+    
+    def init(self):
+        pass
+    
     def run(self): ...
 
     def generate_scenario_name(self):
@@ -207,19 +214,10 @@ class AbstractScenario:
 class ScenarioZero(AbstractScenario):
     """
     Scenario 0: no short notice riders are accepted
-    """
+    """       
 
-    def __init__(
-        self,
-        num_of_zones_per_row: int,
-        zone_length: float,
-        lambda_param: float,
-        planning_horizon: float,
-    ) -> None:
-        super().__init__(
-            num_of_zones_per_row, zone_length, lambda_param, planning_horizon
-        )
-
+    def init(self):
+        super().init()
         self.trips_density = int(self.service_region.num_of_zones * self.lambda_param)
         self.generate_trips()
 
@@ -267,19 +265,9 @@ class ScenarioAllBelowCuttof(ScenarioZero):
 class ScenarioOne(AbstractScenario):
     """
     Scenario 1: Short notice riders are considered
-    """
+    """     
 
-    def __init__(
-        self,
-        num_of_zones_per_row: int,
-        zone_length: float,
-        lambda_param: float,
-        planning_horizon: float,
-    ) -> None:
-        super().__init__(
-            num_of_zones_per_row, zone_length, lambda_param, planning_horizon
-        )
-
+    def init(self):
         self.trips_density = int(self.service_region.num_of_zones * self.lambda_param)
         self.generate_trips()
 

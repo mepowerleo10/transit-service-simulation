@@ -21,24 +21,18 @@ def run_scenario(scenario: AbstractScenario):
 
 
 def main():
-    generated_scenarios = [
-        ScenarioZero(
-            num_of_zones_per_row=env.NUMBER_OF_ZONES_PER_ROW,
-            zone_length=env.ZONE_LENGTH,
-            lambda_param=env.LAMBDA_PARAM,
-            planning_horizon=env.PLANNING_HORIZON,
-        )
-        for i in range(env.NUM_OF_SIMULATIONS)
-    ]
+    args = {
+        "num_of_zones_per_row": env.NUMBER_OF_ZONES_PER_ROW,
+        "zone_length": env.ZONE_LENGTH,
+        "zone_width": env.ZONE_WIDTH,
+        "lambda_param": env.LAMBDA_PARAM,
+        "planning_horizon": env.PLANNING_HORIZON,
+    }
+
+    generated_scenarios = [ScenarioZero(**args) for i in range(env.NUM_OF_SIMULATIONS)]
 
     generated_scenarios += [
-        ScenarioAllBelowCuttof(
-            num_of_zones_per_row=env.NUMBER_OF_ZONES_PER_ROW,
-            zone_length=env.ZONE_LENGTH,
-            lambda_param=env.LAMBDA_PARAM,
-            planning_horizon=env.PLANNING_HORIZON,
-        )
-        for i in range(env.NUM_OF_SIMULATIONS)
+        ScenarioAllBelowCuttof(**args) for i in range(env.NUM_OF_SIMULATIONS)
     ]
 
     process_map(run_scenario, generated_scenarios)

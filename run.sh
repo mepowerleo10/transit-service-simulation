@@ -1,12 +1,17 @@
 #!/bin/bash
 
 OUTPUT_DIR=./output
-if [[ -d $OUTPUT_DIR ]]; then
-  if [[ -f $OUTPUT_DIR/.success ]]; then
-    mv $OUTPUT_DIR $OUTPUT_DIR-$(date +%F_%H:%M:%S)
-  else
-    rm -r $OUTPUT_DIR
+function cleanup() {
+  if [[ -d $OUTPUT_DIR ]]; then
+    if [[ -f $OUTPUT_DIR/.success ]]; then
+      mv $OUTPUT_DIR $OUTPUT_DIR-$(cat $OUTPUT_DIR/.run_at)
+    else
+      rm -r $OUTPUT_DIR
+    fi
   fi
-fi
 
-python ./src/main.py
+  mkdir $OUTPUT_DIR
+  date +%F_%H:%M:%S >$OUTPUT_DIR/.run_at
+}
+
+cleanup && python ./src/main.py
