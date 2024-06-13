@@ -14,4 +14,4 @@ function cleanup() {
   date +%F_%H:%M:%S >$OUTPUT_DIR/.run_at
 }
 
-cleanup && python ./src/main.py
+cleanup && cp src/env.py $OUTPUT_DIR/env.py && python ./src/main.py
