@@ -1,17 +1,37 @@
 #!/bin/bash
 
-OUTPUT_DIR=./output
+OUTPUTS_DIR=./outputs
+CURRENT_OUTPUT_DIR=$OUTPUTS_DIR/current
+QUEUES_DIR=./queues
+ACTIVE_QUEUE_DIR=$QUEUES_DIR/active
+RUN_AT=$(date +%F_%H:%M:%S)
+
 function cleanup() {
-  if [[ -d $OUTPUT_DIR ]]; then
-    if [[ -f $OUTPUT_DIR/.success ]]; then
-      mv $OUTPUT_DIR $OUTPUT_DIR-$(cat $OUTPUT_DIR/.run_at)
+  if [[ -d $CURRENT_OUTPUT_DIR ]]; then
+    if [[ -f $CURRENT_OUTPUT_DIR/.success ]]; then
+      mv $CURRENT_OUTPUT_DIR $OUTPUTS_DIR/$(cat $CURRENT_OUTPUT_DIR/.run_at)
     else
-      rm -r $OUTPUT_DIR
+      rm -r $CURRENT_OUTPUT_DIR
     fi
   fi
 
-  mkdir $OUTPUT_DIR
-  date +%F_%H:%M:%S >$OUTPUT_DIR/.run_at
+  mkdir $CURRENT_OUTPUT_DIR
+  echo $RUN_AT >$CURRENT_OUTPUT_DIR/.run_at
 }
 
-cleanup && cp src/env.py $OUTPUT_DIR/env.py && python ./src/main.py
+if [[ ! -d $ACTIVE_QUEUE_DIR ]]; then
+  echo "$ACTIVE_QUEUE_DIR directory not found, create it and add your environment file(s). exiting ..."
+  exit 1
+fi
+
+for env_file in "$ACTIVE_QUEUE_DIR"/*; do
+  cp $env_file .env
+  cleanup && cp .env $CURRENT_OUTPUT_DIR/env && python ./src/main.py
+  rm .env
+done
+
+if [[ $? -eq 0 ]]; then
+  cp -r $ACTIVE_QUEUE_DIR $QUEUES_DIR/$RUN_AT
+  mkdir -p $ACTIVE_QUEUE_DIR
+fi
+

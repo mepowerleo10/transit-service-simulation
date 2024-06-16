@@ -1,16 +1,25 @@
 from dataclasses import dataclass
 import datetime
 from enum import Enum
+from pathlib import Path
+from typing import Type
 
 import numpy as np
 from scipy.spatial import distance_matrix
 
 
-class Stop:
-    def __init__(self, x: float, y: float, fixed=False) -> None:
-        self.x = x
-        self.y = y
-        self.fixed = fixed
+@dataclass
+class Config:
+    scenario: Type
+    reservation_cuttoff: int
+    output_dir: Path
+    number_of_zones_per_row: int
+    zone_length: int
+    zone_width: int
+    lambda_param: float
+    planning_horizon: float
+    number_of_simulations: int
+    shuttle_speed: float
 
 
 class TripDirection(Enum):

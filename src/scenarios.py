@@ -7,33 +7,30 @@ from typing import List
 import numpy as np
 from ortools.constraint_solver import pywrapcp, routing_enums_pb2
 
-from models import ReservationStatus, ServiceRegion, Trip, TripDirection
+from models import Config, ReservationStatus, ServiceRegion, Trip, TripDirection
 
-from env import OUTPUT_DIR, SECONDS_PER_MINUTE, RESERVATION_CUTOFF, SHUTTLE_SPEED
-
+SECONDS_PER_MINUTE = 60
 
 class AbstractScenario:
     def __init__(
         self,
-        num_of_zones_per_row: int,
-        zone_length: float,
-        zone_width: float,
-        lambda_param: float,
-        planning_horizon: float,
+        config: Config,
     ) -> None:
         """
         lambda_param: Demand density (number of passengers per hour per zone)
         """
 
+        self.config = config
+
         self.scenario_name = self.generate_scenario_name()
-        self.scenario_directory = OUTPUT_DIR / self.scenario_name
+        self.scenario_directory = config.output_dir / self.scenario_name
         self.scenario_directory.mkdir(parents=True, exist_ok=True)
 
-        self.num_of_zones_per_row = num_of_zones_per_row
-        self.zone_length = zone_length
-        self.zone_width = zone_width
-        self.lambda_param = lambda_param
-        self.planning_horizon = planning_horizon
+        self.num_of_zones_per_row = config.number_of_zones_per_row
+        self.zone_length = config.zone_length
+        self.zone_width = config.zone_width
+        self.lambda_param = config.lambda_param
+        self.planning_horizon = config.planning_horizon
 
         # Initialize a list of trips as empty in the beginning
         self.trips: List[Trip] = list()
@@ -47,8 +44,8 @@ class AbstractScenario:
 
         self.num_of_shuttles = 1
         self.trips_density = 0
-        self.cut_off_time = RESERVATION_CUTOFF * SECONDS_PER_MINUTE  # 50 minutes
-        self.shuttle_speed = SHUTTLE_SPEED
+        self.cut_off_time = config.reservation_cuttoff * SECONDS_PER_MINUTE  # 50 minutes
+        self.shuttle_speed = config.shuttle_speed
         self.max_distance = floor(self.cut_off_time * self.shuttle_speed)
 
         self.allow_dropping = True
@@ -62,7 +59,7 @@ class AbstractScenario:
 
     def generate_scenario_name(self):
         now = datetime.datetime.now()
-        return f"{self.__class__.__name__}/{now.strftime("%d_%m_%Y__%H_%M_%S.%f")}"
+        return f"{now.strftime("%d_%m_%Y__%H_%M_%S.%f")}"
 
     def get_generated_route(self, trips: List[Trip]):
         starting_time = timer()
@@ -156,7 +153,7 @@ class AbstractScenario:
         with open(results_file, mode="w+") as f:
             try:
                 # f.write(f"Objective: {solution.ObjectiveValue()} s\n")
-                f.write(f"Objective: <= {RESERVATION_CUTOFF} minutes\n")
+                f.write(f"Objective: <= {self.config.reservation_cuttoff} minutes\n")
 
                 index = routing.Start(0)
                 plan_output = "Route for Shuttle:\n"
@@ -228,7 +225,7 @@ class ScenarioZero(AbstractScenario):
 
         trips_within_time = {}
         for index, trip in enumerate(self.trips):
-            if trip.reserved_at < RESERVATION_CUTOFF:
+            if trip.reserved_at < self.config.reservation_cuttoff:
                 trips_within_time[index] = trip
 
         manager, routing, solution, elapsed_time = self.get_generated_route(
