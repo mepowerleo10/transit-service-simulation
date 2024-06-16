@@ -48,6 +48,7 @@ class AbstractScenario:
         self.shuttle_speed = config.shuttle_speed
         self.max_distance = floor(self.cut_off_time * self.shuttle_speed)
 
+        self.search_parameters = None
         self.allow_dropping = True
 
         self.init()
@@ -100,15 +101,18 @@ class AbstractScenario:
             for node in range(1, len(trips)):
                 routing.AddDisjunction([manager.NodeToIndex(node)], penalty)
 
-        search_parameters = pywrapcp.DefaultRoutingSearchParameters()
-        search_parameters.first_solution_strategy = (
-            routing_enums_pb2.FirstSolutionStrategy.PATH_CHEAPEST_ARC
-        )
-        search_parameters.local_search_metaheuristic = (
-            routing_enums_pb2.LocalSearchMetaheuristic.GUIDED_LOCAL_SEARCH
-        )
-        search_parameters.time_limit.seconds = 30
-        search_parameters.log_search = True
+        if not self.search_parameters:
+            search_parameters = pywrapcp.DefaultRoutingSearchParameters()
+            search_parameters.first_solution_strategy = (
+                routing_enums_pb2.FirstSolutionStrategy.PATH_CHEAPEST_ARC
+            )
+            search_parameters.local_search_metaheuristic = (
+                routing_enums_pb2.LocalSearchMetaheuristic.GUIDED_LOCAL_SEARCH
+            )
+            search_parameters.time_limit.seconds = 30
+            search_parameters.log_search = True
+        else:
+            search_parameters = self.search_parameters
 
         solution = routing.SolveWithParameters(search_parameters)
 
@@ -250,7 +254,7 @@ class ScenarioZero(AbstractScenario):
         # self.write_distance_matrix()
 
 
-class ScenarioAllBelowCuttof(ScenarioZero):
+class ScenarioAllBelowCutoff(ScenarioZero):
     """Accepts all scenarios below zero"""
 
     def run(self):

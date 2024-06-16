@@ -2,7 +2,7 @@ from logging import getLogger
 from pathlib import Path
 from scenarios import (
     AbstractScenario,
-    ScenarioAllBelowCuttof,
+    ScenarioAllBelowCutoff,
     ScenarioOne,
     ScenarioZero,
 )
@@ -16,7 +16,7 @@ logger = getLogger(__name__)
 scenarios_registry = {
     "Zero": ScenarioZero,
     "One": ScenarioOne,
-    "AllBelowCutoff": ScenarioAllBelowCuttof,
+    "AllBelowCutoff": ScenarioAllBelowCutoff,
 }
 
 

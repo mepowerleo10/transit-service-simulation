@@ -18,5 +18,14 @@ Simulating a Semi-Flex Transit service
 - Run the simulation:
   `./run.sh`
 
-## Packaging the Results
+## Scenarios for the Environment Configuration file
+| Key            | Scenario                | Description                                                 |
+| -------------- | ----------------------- | ----------------------------------------------------------- |
+| Zero           | ScenarioZero            | Scenario 0: no short-notice riders are accepted             |
+| One            | ScenarioOne             | Scenario 1: short-notice riders are considered case by case |
+| AllBelowCutoff | ScenarioAllBelowCuttoff | All Trips below the Cutoff are automatically accepted       |
+
+
+
+## Packaging the **Results**
 - `./package-output.sh [FOLDER NAMES ...]`
