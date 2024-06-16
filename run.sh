@@ -16,7 +16,7 @@ function cleanup() {
   fi
 
   mkdir $CURRENT_OUTPUT_DIR
-  echo $RUN_AT >$CURRENT_OUTPUT_DIR/.run_at
+  date +%F_%H:%M:%S >$CURRENT_OUTPUT_DIR/.run_at
 }
 
 if [[ ! -d $ACTIVE_QUEUE_DIR ]]; then
@@ -34,4 +34,3 @@ if [[ $? -eq 0 ]]; then
   cp -r $ACTIVE_QUEUE_DIR $QUEUES_DIR/$RUN_AT
   mkdir -p $ACTIVE_QUEUE_DIR
 fi
-

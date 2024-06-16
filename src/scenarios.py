@@ -69,7 +69,7 @@ class AbstractScenario:
         manager = pywrapcp.RoutingIndexManager(
             len(trips),
             self.num_of_shuttles,
-            0,
+            floor(self.num_of_zones_per_row / 2),
         )
         routing = pywrapcp.RoutingModel(manager)
 
