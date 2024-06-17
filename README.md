@@ -13,8 +13,8 @@ Simulating a Semi-Flex Transit service
   `source .venv/bin/activate`
 - Create an active queue folder if it does not exist:
   `mkdir -p ./queues/active`
-- Copy `env.dist` into your active queues directory make as many copies as possible for all different parameters you want to try. i.e.:
-  `cp env.dist ./queues/active/simple.env`
+- Copy `sample.conf` into your active queues directory make as many copies as possible for all different parameters you want to try. i.e.:
+  `cat sample.conf > ./queues/active/{first,second,third}.conf`
 - Run the simulation:
   `./run.sh`
 

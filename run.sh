@@ -24,9 +24,9 @@ if [[ ! -d $ACTIVE_QUEUE_DIR ]]; then
   exit 1
 fi
 
-for env_file in "$ACTIVE_QUEUE_DIR"/*; do
+for env_file in "$ACTIVE_QUEUE_DIR"/*.conf; do
   cp $env_file .env
-  cleanup && cp .env $CURRENT_OUTPUT_DIR/env && python ./src/main.py
+  cleanup && cp .env $CURRENT_OUTPUT_DIR/.conf && python ./src/main.py
   rm .env
 done
 

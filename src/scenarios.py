@@ -23,7 +23,7 @@ class AbstractScenario:
         self.config = config
 
         self.scenario_name = self.generate_scenario_name()
-        self.scenario_directory = config.output_dir / self.scenario_name
+        self.scenario_directory = config.output_dir / "data" / self.scenario_name
         self.scenario_directory.mkdir(parents=True, exist_ok=True)
 
         self.num_of_zones_per_row = config.number_of_zones_per_row
