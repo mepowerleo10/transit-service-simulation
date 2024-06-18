@@ -21,6 +21,8 @@ class Config:
     planning_horizon: float
     number_of_simulations: int
     shuttle_speed: float
+    min_reservation_time: int
+    max_reservation_time: int
 
 
 class TripDirection(Enum):
@@ -73,7 +75,7 @@ class ServiceRegion:
         # 1. Get the number of rows in the array
         # 2. Pick a random row index
         num_rows = self.stops_grid.shape[0]
-        self.fixed_stop_index = floor(num_rows / 2)  # np.random.choice(num_rows)
+        self.fixed_stop_index = np.random.choice(num_rows)
         self.fixed_stop: np.ndarray = self.stops_grid[self.fixed_stop_index]
 
         # Pick all other stops ignoring the fixed stop as none_fixed_stops

@@ -191,7 +191,11 @@ class AbstractScenario:
             self.service_region.none_fixed_stops.shape[0], self.trips_density
         )
         for num, stop_index in enumerate(random_stops_index):
-            reservation_time = np.random.randint(0, 60)
+            reservation_time = np.random.randint(
+                self.config.min_reservation_time, 
+                self.config.max_reservation_time
+            )
+
             direction_of_travel = (
                 TripDirection.INBOUND
                 if np.random.random() < self.inbound_or_outbound_px

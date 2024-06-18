@@ -21,11 +21,13 @@ scenarios_registry = {
 
 
 def read_env(env_file: Path):
-    """ Reads the environment file and returns a configuration object """
+    """Reads the environment file and returns a configuration object"""
     env = dotenv_values(env_file.as_posix())
 
-    def value(key, type=None):
-        return type(env[key]) if type else env[key]
+    def value(key, type=None, default_value=None):
+        return (
+            type(env.get(key, default_value)) if type else env.get(key, default_value)
+        )
 
     config = Config(
         scenario=scenarios_registry[value("SCENARIO")],
@@ -38,6 +40,8 @@ def read_env(env_file: Path):
         planning_horizon=value("PLANNING_HORIZON", float),
         number_of_simulations=value("NUM_OF_SIMULATIONS", int),
         shuttle_speed=value("SHUTTLE_SPEED", float),
+        min_reservation_time=value("MIN_RESERVATION_TIME", int, 0),
+        max_reservation_time=value("MAX_RESERVATION_TIME", int, 60),
     )
 
     return config
