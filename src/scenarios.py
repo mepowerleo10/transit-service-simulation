@@ -69,7 +69,7 @@ class AbstractScenario:
         manager = pywrapcp.RoutingIndexManager(
             len(trips),
             self.num_of_shuttles,
-            floor(self.num_of_zones_per_row / 2),
+            0, # the fixed stop index is always the first item in routing_stops_distance_matrix
         )
         routing = pywrapcp.RoutingModel(manager)
 
