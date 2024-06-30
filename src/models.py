@@ -15,8 +15,8 @@ class Config:
     reservation_cuttoff: int
     output_dir: Path
     number_of_zones_per_row: int
-    zone_length: int
-    zone_width: int
+    zone_length: float
+    zone_width: float
     lambda_param: float
     planning_horizon: float
     number_of_simulations: int
