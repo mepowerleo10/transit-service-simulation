@@ -5,9 +5,11 @@ import traceback
 from typing import List
 
 import numpy as np
+import pandas as pd
 from ortools.constraint_solver import pywrapcp, routing_enums_pb2
 
-from models import Config, ReservationStatus, ServiceRegion, Trip, TripDirection
+from models import Config, ServiceRegion, Trip, TripDirection
+import graph
 
 SECONDS_PER_MINUTE = 60
 
@@ -67,7 +69,7 @@ class AbstractScenario:
 
         routing_stops_distance_matrix = self.pick_routing_stops_distance_matrix(trips)
         manager = pywrapcp.RoutingIndexManager(
-            len(trips),
+            len(trips) + 1,
             self.num_of_shuttles,
             0, # the fixed stop index is always the first item in routing_stops_distance_matrix
         )
@@ -153,6 +155,7 @@ class AbstractScenario:
     ):
         """Writes the solution to the filesystem."""
 
+        route_points = []
         results_file = self.scenario_directory / "results.txt"
         with open(results_file, mode="w+") as f:
             try:
@@ -160,41 +163,89 @@ class AbstractScenario:
                 f.write(f"Objective: <= {self.config.reservation_cuttoff} minutes\n")
 
                 index = routing.Start(0)
-                plan_output = "Route for Shuttle:\n"
                 route_distance = 0.0
                 while not routing.IsEnd(index):
-                    plan_output += f" {manager.IndexToNode(index)} ->"
+                    route_points.append(str(manager.IndexToNode(index)))
                     previous_index = index
                     index = solution.Value(routing.NextVar(index))
                     route_distance += routing.GetArcCostForVehicle(
                         previous_index, index, 0
                     )
-                plan_output += f" {manager.IndexToNode(index)}\n"
-
+                route_points.append(str(manager.IndexToNode(index)))
                 route_time = route_distance / (self.shuttle_speed * SECONDS_PER_MINUTE)
-                plan_output += f"Route time: {route_time:.2f} minutes\n\n"
 
-                f.writelines([plan_output, f"Elapsed time: {elapsed_time} seconds\n"])
+                f.writelines([
+                    "Route for Shuttle:\n",
+                    " -> ".join(route_points) + "\n",
+                    f"Route time: {route_time:.2f} minutes\n\n"
+                    f"Elapsed time: {elapsed_time} seconds\n",
+                ])
             except Exception:
                 f.write("Failed to find solution\n")
                 f.writelines(traceback.format_exc())
+
+        self.draw_graph(route_points)
 
     def write_distance_matrix(self):
         distance_matrix_file = self.scenario_directory / "distance_matrix.out"
         with open(distance_matrix_file, "w+") as f:
             np.savetxt(f, self.service_region.stops_distance_matrix)
 
+    def draw_graph(self, route_points: List):
+        route_points_iterator = iter(route_points)
+        prev_point = int(next(route_points_iterator))
+
+        nodes = [prev_point]
+        next_nodes = []
+        colors = ["#8DB1E2"]
+        shapes = ["s"]
+        sizes = [3000]
+        positions = [self.service_region.fixed_stop]
+
+        for curr_point in route_points_iterator:
+            curr_point = int(curr_point)
+            if curr_point == 0:
+                continue
+
+            trip = self.trips[curr_point - 1]
+            direction = trip.direction
+            prev_point = curr_point
+
+            nodes.append(curr_point)
+            next_nodes.append(curr_point)
+            colors.append("#FFC000" if direction == TripDirection.OUTBOUND else "#C4D6A0")
+            shapes.append("o")
+            sizes.append(500)
+            positions.append(trip.location)
+        next_nodes.append(0)
+
+        nodes_df = pd.DataFrame(
+            {
+                "NODES": nodes,
+                "NEXT_NODES": next_nodes,
+                "POSITIONS": positions,
+                "COLORS": colors,
+                "SHAPES": shapes,
+                "SIZES": sizes,
+            }
+        )
+
+        graph.draw(nodes_df, self.scenario_directory)
+        
+
     def generate_trips(self):
         # Pick random stops from all other stops, excluding the fixed stop.
         # These will be used to generate a list of trips
         random_stops_index = np.random.choice(
-            self.service_region.none_fixed_stops.shape[0], self.trips_density
+            self.service_region.none_fixed_stops.shape[0], self.trips_density,
+            replace=False
         )
         for num, stop_index in enumerate(random_stops_index):
             reservation_time = np.random.randint(
                 self.config.min_reservation_time, 
                 self.config.max_reservation_time
             )
+            stop_position = tuple(self.service_region.none_fixed_stops[stop_index])
 
             direction_of_travel = (
                 TripDirection.INBOUND
@@ -206,6 +257,7 @@ class AbstractScenario:
                 reserved_at=reservation_time,
                 direction=direction_of_travel,
                 location_index=stop_index,
+                location=stop_position,
             )
             self.trips.append(trip)
 
@@ -214,101 +266,3 @@ class AbstractScenario:
         locations = [self.service_region.fixed_stop_index] + trip_location_indices
         rows = self.service_region.stops_distance_matrix[locations]
         return rows[:, locations].astype(int)
-
-
-class ScenarioZero(AbstractScenario):
-    """
-    Scenario 0: no short notice riders are accepted
-    """       
-
-    def init(self):
-        super().init()
-        self.trips_density = int(self.service_region.num_of_zones * self.lambda_param)
-        self.generate_trips()
-
-    def run(self):
-        """trips_within_time = [
-            trip for trip in self.trips if trip.reserved_at <= RESERVATION_CUTOFF
-        ]  # ignore all trips above the cutoff time"""
-
-        trips_within_time = {}
-        for index, trip in enumerate(self.trips):
-            if trip.reserved_at < self.config.reservation_cuttoff:
-                trips_within_time[index] = trip
-
-        manager, routing, solution, elapsed_time = self.get_generated_route(
-            list(trips_within_time.values())
-        )
-        dropped_nodes = self.get_dropped_nodes(routing, manager, solution)
-
-        if solution:
-            for index, trip in enumerate(self.trips):
-                status = ReservationStatus.REJECTED
-                if (
-                    index in list(trips_within_time.keys())
-                    and index + 1
-                    not in dropped_nodes  # dropped nodes contains the fixed_stop, offset the index by one forward
-                ):
-                    status = ReservationStatus.ACCEPTED
-
-                trip.reservation_status = status
-
-        self.write_generated_trips()
-        self.write_results(solution, routing, manager, elapsed_time)
-        # self.write_distance_matrix()
-
-
-class ScenarioAllBelowCutoff(ScenarioZero):
-    """Accepts all scenarios below zero"""
-
-    def init(self):
-        super().init()
-        self.search_parameters = pywrapcp.DefaultRoutingSearchParameters()
-        self.search_parameters.first_solution_strategy = (
-            routing_enums_pb2.FirstSolutionStrategy.PATH_CHEAPEST_ARC
-        )
-        self.search_parameters.local_search_metaheuristic = (
-            routing_enums_pb2.LocalSearchMetaheuristic.GUIDED_LOCAL_SEARCH
-        )
-        self.search_parameters.time_limit.seconds = 5
-        self.search_parameters.log_search = False
-        self.search_parameters.use_full_propagation = False
-
-    def run(self):
-        self.max_distance = 1_000_000_000
-        self.allow_dropping = False
-        super().run()
-
-
-class ScenarioOne(AbstractScenario):
-    """
-    Scenario 1: Short notice riders are considered
-    """     
-
-    def init(self):
-        self.trips_density = int(self.service_region.num_of_zones * self.lambda_param)
-        self.generate_trips()
-
-    def run(self):
-        all_trips_generated = dict(
-            [(index, trip) for index, trip in enumerate(self.trips)]
-        )
-
-        manager, routing, solution, elapsed_time = self.get_generated_route(
-            list(all_trips_generated.values())
-        )
-        dropped_nodes = self.get_dropped_nodes(routing, manager, solution)
-
-        if solution:
-            for index, trip in enumerate(self.trips):
-                status = ReservationStatus.REJECTED
-                if (
-                    index + 1 not in dropped_nodes
-                ):  # dropped nodes contain the fixed_stop, offset the index by one forward
-                    status = ReservationStatus.ACCEPTED
-
-                trip.reservation_status = status
-
-        self.write_generated_trips()
-        self.write_results(solution, routing, manager, elapsed_time)
-        # self.write_distance_matrix()

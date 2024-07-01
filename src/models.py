@@ -45,11 +45,12 @@ class Trip:
     reserved_at: datetime.datetime
     direction: TripDirection
     location_index: int
+    location: tuple
     reservation_status = ReservationStatus.PENDING
 
     def __str__(self) -> str:
         return f"""
-        id: {self.id}, direction: {self.direction.name}, location_index: {self.location_index}, reserved_at: {self.reserved_at}, reservation_status: {self.reservation_status.name}
+        id: {self.id}, direction: {self.direction.name}, location_index: {self.location_index}, location: {self.location}, reserved_at: {self.reserved_at}, reservation_status: {self.reservation_status.name}
         """
 
     def as_csv_line(self) -> str:
