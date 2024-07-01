@@ -8,7 +8,7 @@ import numpy as np
 import pandas as pd
 from ortools.constraint_solver import pywrapcp, routing_enums_pb2
 
-from models import Config, ServiceRegion, Trip, TripDirection
+from models import Config, ReservationStatus, ServiceRegion, Trip, TripDirection
 import graph
 
 SECONDS_PER_MINUTE = 60
@@ -195,12 +195,14 @@ class AbstractScenario:
         route_points_iterator = iter(route_points)
         prev_point = int(next(route_points_iterator))
 
+        fixed_stop_color, inbound_color, outbound_color = ("#8DB1E2", "#C4D6A0", "#FFC000")
+        fixed_stop_size, trips_node_size = (3000, 500)
+
         nodes = [prev_point]
         next_nodes = []
-        colors = ["#8DB1E2"]
-        shapes = ["s"]
-        sizes = [3000]
-        positions = [self.service_region.fixed_stop]
+        colors = [fixed_stop_color]
+        sizes = [fixed_stop_size]
+        positions = [tuple(self.service_region.fixed_stop)]
 
         for curr_point in route_points_iterator:
             curr_point = int(curr_point)
@@ -213,9 +215,8 @@ class AbstractScenario:
 
             nodes.append(curr_point)
             next_nodes.append(curr_point)
-            colors.append("#FFC000" if direction == TripDirection.OUTBOUND else "#C4D6A0")
-            shapes.append("o")
-            sizes.append(500)
+            colors.append(outbound_color if direction == TripDirection.OUTBOUND else inbound_color)
+            sizes.append(trips_node_size)
             positions.append(trip.location)
         next_nodes.append(0)
 
@@ -225,11 +226,20 @@ class AbstractScenario:
                 "NEXT_NODES": next_nodes,
                 "POSITIONS": positions,
                 "COLORS": colors,
-                "SHAPES": shapes,
                 "SIZES": sizes,
             }
         )
 
+        dropped_trips = filter(lambda x: x.reservation_status == ReservationStatus.REJECTED, self.trips)
+        for trip in dropped_trips:
+            nodes_df.loc[-1] = [int(trip.id),
+                                np.nan,
+                                tuple(trip.location), 
+                                outbound_color if direction == TripDirection.OUTBOUND else inbound_color,
+                                trips_node_size]
+            nodes_df.index += 1
+
+        # graph.draw(pd.concat([accepted_nodes_df, dropped_nodes_df]), self.scenario_directory)
         graph.draw(nodes_df, self.scenario_directory)
         
 
