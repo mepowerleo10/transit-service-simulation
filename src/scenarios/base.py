@@ -13,6 +13,7 @@ import graph
 
 SECONDS_PER_MINUTE = 60
 
+
 class AbstractScenario:
     def __init__(
         self,
@@ -38,7 +39,9 @@ class AbstractScenario:
         self.trips: List[Trip] = list()
 
         # Create a service region
-        self.service_region = ServiceRegion(self.num_of_zones_per_row, self.zone_length, self.zone_width)
+        self.service_region = ServiceRegion(
+            self.num_of_zones_per_row, self.zone_length, self.zone_width
+        )
 
         self.inbound_or_outbound_px = (
             0.5  # Probability that a trip is inbound or outbound
@@ -46,7 +49,9 @@ class AbstractScenario:
 
         self.num_of_shuttles = 1
         self.trips_density = 0
-        self.cut_off_time = config.reservation_cuttoff * SECONDS_PER_MINUTE  # 50 minutes
+        self.cut_off_time = (
+            config.reservation_cuttoff * SECONDS_PER_MINUTE
+        )  # 50 minutes
         self.shuttle_speed = config.shuttle_speed
         self.max_distance = floor(self.cut_off_time * self.shuttle_speed)
 
@@ -54,10 +59,10 @@ class AbstractScenario:
         self.allow_dropping = True
 
         self.init()
-    
+
     def init(self):
         pass
-    
+
     def run(self): ...
 
     def generate_scenario_name(self):
@@ -71,7 +76,7 @@ class AbstractScenario:
         manager = pywrapcp.RoutingIndexManager(
             len(trips) + 1,
             self.num_of_shuttles,
-            0, # the fixed stop index is always the first item in routing_stops_distance_matrix
+            0,  # the fixed stop index is always the first item in routing_stops_distance_matrix
         )
         routing = pywrapcp.RoutingModel(manager)
 
@@ -174,12 +179,14 @@ class AbstractScenario:
                 route_points.append(str(manager.IndexToNode(index)))
                 route_time = route_distance / (self.shuttle_speed * SECONDS_PER_MINUTE)
 
-                f.writelines([
-                    "Route for Shuttle:\n",
-                    " -> ".join(route_points) + "\n",
-                    f"Route time: {route_time:.2f} minutes\n\n"
-                    f"Elapsed time: {elapsed_time} seconds\n",
-                ])
+                f.writelines(
+                    [
+                        "Route for Shuttle:\n",
+                        " -> ".join(route_points) + "\n",
+                        f"Route time: {route_time:.2f} minutes\n\n"
+                        f"Elapsed time: {elapsed_time} seconds\n",
+                    ]
+                )
             except Exception:
                 f.write("Failed to find solution\n")
                 f.writelines(traceback.format_exc())
@@ -195,7 +202,11 @@ class AbstractScenario:
         route_points_iterator = iter(route_points)
         prev_point = int(next(route_points_iterator))
 
-        fixed_stop_color, inbound_color, outbound_color = ("#8DB1E2", "#C4D6A0", "#FFC000")
+        fixed_stop_color, inbound_color, outbound_color = (
+            "#8DB1E2",
+            "#C4D6A0",
+            "#FFC000",
+        )
         fixed_stop_size, trips_node_size = (3000, 500)
 
         nodes = [prev_point]
@@ -215,7 +226,9 @@ class AbstractScenario:
 
             nodes.append(curr_point)
             next_nodes.append(curr_point)
-            colors.append(outbound_color if direction == TripDirection.OUTBOUND else inbound_color)
+            colors.append(
+                outbound_color if direction == TripDirection.OUTBOUND else inbound_color
+            )
             sizes.append(trips_node_size)
             positions.append(trip.location)
         next_nodes.append(0)
@@ -230,30 +243,35 @@ class AbstractScenario:
             }
         )
 
-        dropped_trips = filter(lambda x: x.reservation_status == ReservationStatus.REJECTED, self.trips)
+        dropped_trips = filter(
+            lambda x: x.reservation_status == ReservationStatus.REJECTED, self.trips
+        )
         for trip in dropped_trips:
-            nodes_df.loc[-1] = [int(trip.id),
-                                np.nan,
-                                tuple(trip.location), 
-                                outbound_color if direction == TripDirection.OUTBOUND else inbound_color,
-                                trips_node_size]
+            nodes_df.loc[-1] = [
+                int(trip.id),
+                np.nan,
+                tuple(trip.location),
+                outbound_color
+                if direction == TripDirection.OUTBOUND
+                else inbound_color,
+                trips_node_size,
+            ]
             nodes_df.index += 1
 
         # graph.draw(pd.concat([accepted_nodes_df, dropped_nodes_df]), self.scenario_directory)
         graph.draw(nodes_df, self.scenario_directory)
-        
 
     def generate_trips(self):
         # Pick random stops from all other stops, excluding the fixed stop.
         # These will be used to generate a list of trips
         random_stops_index = np.random.choice(
-            self.service_region.none_fixed_stops.shape[0], self.trips_density,
-            replace=False
+            self.service_region.none_fixed_stops.shape[0],
+            self.trips_density,
+            replace=False,
         )
         for num, stop_index in enumerate(random_stops_index):
             reservation_time = np.random.randint(
-                self.config.min_reservation_time, 
-                self.config.max_reservation_time
+                self.config.min_reservation_time, self.config.max_reservation_time
             )
             stop_position = tuple(self.service_region.none_fixed_stops[stop_index])
 

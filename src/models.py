@@ -77,7 +77,8 @@ class ServiceRegion:
         # 2. Pick a random row index
         num_rows = self.stops_grid.shape[0]
         self.fixed_stop_index = np.random.choice(num_rows)
-        self.fixed_stop: np.ndarray = self.stops_grid[self.fixed_stop_index]
+        # self.fixed_stop: np.ndarray = self.stops_grid[self.fixed_stop_index]
+        self.fixed_stop: np.ndarray = self.stops_grid[floor(num_rows / 2)]
 
         # Pick all other stops ignoring the fixed stop as none_fixed_stops
         mask = ~np.all(self.stops_grid == self.fixed_stop, axis=1)

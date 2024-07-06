@@ -2,6 +2,7 @@ from ortools.constraint_solver import pywrapcp, routing_enums_pb2
 from models import ReservationStatus
 from .base import AbstractScenario
 
+
 class ScenarioZero(AbstractScenario):
     """
     Scenario 0: no short notice riders are accepted

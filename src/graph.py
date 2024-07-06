@@ -23,12 +23,12 @@ def draw(nodes_df: pd.DataFrame, output_path: Path):
             "font_size": 12,
             "font_color": "black",
             "with_labels": True,
-            "connectionstyle": "arc3,rad=0.2",
+            "connectionstyle": "arc3,rad=0.3",
             "arrowstyle": "-|>",
             "arrowsize": 20,
         }
 
-        plt.figure(figsize=[10, 5])
+        plt.figure(figsize=[20, 10])
 
         nx.draw(
             G,
@@ -58,5 +58,5 @@ def draw(nodes_df: pd.DataFrame, output_path: Path):
         gml_output_path = output_path / "graph.gml"
         print(f"Saving the GML for graph in {gml_output_path}")
         nx.write_gml(G, gml_output_path)
-    except Exception as e:
+    except Exception:
         traceback.print_exc()
