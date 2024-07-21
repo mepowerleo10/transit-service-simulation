@@ -1,9 +1,9 @@
 from ortools.constraint_solver import pywrapcp, routing_enums_pb2
 from models import ReservationStatus
-from .base import AbstractScenario
+from . import GoogleORToolsScenario
 
 
-class ScenarioZero(AbstractScenario):
+class ScenarioZero(GoogleORToolsScenario):
     """
     Scenario 0: no short notice riders are accepted
     """
@@ -41,7 +41,7 @@ class ScenarioZero(AbstractScenario):
                 trip.reservation_status = status
 
         self.write_generated_trips()
-        self.write_results(solution, routing, manager, elapsed_time)
+        self.write_route_results(solution, routing, manager, elapsed_time)
         # self.write_distance_matrix()
 
 
@@ -67,7 +67,7 @@ class ScenarioAllBelowCutoff(ScenarioZero):
         super().run()
 
 
-class ScenarioOne(AbstractScenario):
+class ScenarioOne(GoogleORToolsScenario):
     """
     Scenario 1: Short notice riders are considered
     """
@@ -97,5 +97,5 @@ class ScenarioOne(AbstractScenario):
                 trip.reservation_status = status
 
         self.write_generated_trips()
-        self.write_results(solution, routing, manager, elapsed_time)
+        self.write_route_results(solution, routing, manager, elapsed_time)
         # self.write_distance_matrix()

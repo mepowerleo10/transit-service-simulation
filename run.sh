@@ -5,6 +5,7 @@ CURRENT_OUTPUT_DIR=$OUTPUTS_DIR/current
 QUEUES_DIR=./queues
 ACTIVE_QUEUE_DIR=$QUEUES_DIR/active
 RUN_AT=$(date +%F_%H:%M:%S)
+OPTS=${@}
 
 if [[ ! -d $ACTIVE_QUEUE_DIR ]]; then
   echo "$ACTIVE_QUEUE_DIR directory not found, create it and add your configuration file(s). exiting ..."
@@ -31,7 +32,8 @@ function cleanup() {
 
 for env_file in "$ACTIVE_QUEUE_DIR"/*.conf; do
   cp $env_file .env
-  cleanup && cp .env $CURRENT_OUTPUT_DIR/.conf && python ./src/main.py
+  echo "Running src/main.py with $OPTS"
+  cleanup && cp .env $CURRENT_OUTPUT_DIR/.conf && python $OPTS ./src/main.py
   rm .env
 done
 

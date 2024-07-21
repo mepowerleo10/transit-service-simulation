@@ -1,10 +1,11 @@
 from logging import getLogger
 from pathlib import Path
 from scenarios import (
-    AbstractScenario,
+    BaseScenario,
     ScenarioAllBelowCutoff,
     ScenarioOne,
     ScenarioZero,
+    PulpScenario,
 )
 from tqdm.contrib.concurrent import process_map
 from dotenv import dotenv_values
@@ -17,6 +18,7 @@ scenarios_registry = {
     "Zero": ScenarioZero,
     "One": ScenarioOne,
     "AllBelowCutoff": ScenarioAllBelowCutoff,
+    "Pulp": PulpScenario,
 }
 
 
@@ -47,7 +49,7 @@ def read_env(env_file: Path):
     return config
 
 
-def run_scenario(scenario: AbstractScenario):
+def run_scenario(scenario: BaseScenario):
     try:
         print(f"Running {scenario.scenario_name} ...")
         scenario.run()
@@ -71,6 +73,7 @@ def main():
     ]
 
     process_map(run_scenario, generated_scenarios)
+    # run_scenario(generated_scenarios[0])
 
     with open(config.output_dir / ".success", "w+") as f:
         f.write("")
