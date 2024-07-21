@@ -10,7 +10,9 @@ class ScenarioZero(GoogleORToolsScenario):
 
     def init(self):
         super().init()
-        self.trips_density = int(self.service_region.num_of_zones * self.lambda_param)
+        self.trips_density = int(
+            self.service_region.num_of_zones * self.lambda_param * self.planning_horizon
+        )
         self.generate_trips()
 
     def run(self):
@@ -73,7 +75,9 @@ class ScenarioOne(GoogleORToolsScenario):
     """
 
     def init(self):
-        self.trips_density = int(self.service_region.num_of_zones * self.lambda_param)
+        self.trips_density = int(
+            self.service_region.num_of_zones * self.lambda_param * self.planning_horizon
+        )
         self.generate_trips()
 
     def run(self):
