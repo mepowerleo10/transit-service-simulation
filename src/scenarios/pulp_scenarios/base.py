@@ -1,11 +1,11 @@
-from timeit import default_timer as timer
 import traceback
+from timeit import default_timer as timer
 from typing import List
+
 import pulp
+from models import ReservationStatus, Trip
 
-from models import Trip
-
-from ..base import BaseScenario, SECONDS_PER_MINUTE
+from ..base import SECONDS_PER_MINUTE, BaseScenario
 
 
 class PulpScenario(BaseScenario):
@@ -103,16 +103,18 @@ class PulpScenario(BaseScenario):
         elapsed_time = timer() - starting_time
 
         indexed_route_points = []
+        loc_to_trip_id_mapping = dict(
+            [(trip.location_index, trip.id) for trip in self.trips]
+        )
         for point in ordered_route_points[1:-1]:
-            trip_index = next(
-                (i for i, x in enumerate(self.trips) if x.location_index == point), None
-            )
+            indexed_route_points.append(str(loc_to_trip_id_mapping[point]))
 
-            if trip_index:
-                indexed_route_points.append(str(trip_index))
+        fixed_stop_index = "0"  # self.service_region.fixed_stop_index
+        indexed_route_points.insert(0, str(fixed_stop_index))
+        indexed_route_points.append(str(fixed_stop_index))
 
-        indexed_route_points.insert(0, str(0))
-        indexed_route_points.append(str(0))
+        for trip in self.trips:
+            trip.reservation_status = ReservationStatus.ACCEPTED
 
         return {
             "objective": objective_distance / (self.shuttle_speed * SECONDS_PER_MINUTE),

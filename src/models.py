@@ -1,5 +1,5 @@
-from dataclasses import dataclass
 import datetime
+from dataclasses import dataclass
 from enum import Enum
 from math import floor
 from pathlib import Path
@@ -74,11 +74,12 @@ class ServiceRegion:
 
         # Set a random fixed stop in the service region
         # 1. Get the number of rows in the array
-        # 2. Pick a random row index
+        # 2. Pick the center as a fixed stop
         num_rows = self.stops_grid.shape[0]
-        self.fixed_stop_index = np.random.choice(num_rows)
-        # self.fixed_stop: np.ndarray = self.stops_grid[self.fixed_stop_index]
-        self.fixed_stop: np.ndarray = self.stops_grid[floor(num_rows / 2)]
+        # self.fixed_stop_index = np.random.choice(num_rows)
+        self.fixed_stop_index = floor(num_rows / 2)
+        self.fixed_stop: np.ndarray = self.stops_grid[self.fixed_stop_index]
+        # self.fixed_stop: np.ndarray = self.stops_grid[floor(num_rows / 2)]
 
         # Pick all other stops ignoring the fixed stop as none_fixed_stops
         mask = ~np.all(self.stops_grid == self.fixed_stop, axis=1)

@@ -1,13 +1,12 @@
 import datetime
-from math import floor
 import traceback
+from math import floor
 from typing import List
 
+import graph
 import numpy as np
 import pandas as pd
-
 from models import Config, ReservationStatus, ServiceRegion, Trip, TripDirection
-import graph
 
 SECONDS_PER_MINUTE = 60
 
@@ -133,16 +132,21 @@ class BaseScenario:
     def generate_trips(self):
         # Pick random stops from all other stops, excluding the fixed stop.
         # These will be used to generate a list of trips
+        selectable_stop_indices = np.delete(
+            np.arange(self.service_region.stops_grid.shape[0]),
+            self.service_region.fixed_stop_index,
+        )
         random_stops_index = np.random.choice(
-            self.service_region.none_fixed_stops.shape[0],
+            selectable_stop_indices,
             self.trips_density,
             replace=False,
         )
+
         for num, stop_index in enumerate(random_stops_index):
             reservation_time = np.random.randint(
                 self.config.min_reservation_time, self.config.max_reservation_time
             )
-            stop_position = tuple(self.service_region.none_fixed_stops[stop_index])
+            stop_position = tuple(self.service_region.stops_grid[stop_index])
 
             direction_of_travel = (
                 TripDirection.INBOUND
@@ -184,7 +188,6 @@ class BaseScenario:
             if error_messages:
                 f.writelines(error_messages)
                 return
-            breakpoint()
             f.write(f"Objective: <= {objective} minutes\n")
             f.writelines(
                 [
